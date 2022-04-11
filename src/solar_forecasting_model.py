@@ -61,25 +61,30 @@ sample_df = pd.read_csv('data_cleaned/Bondville IL_observations.csv', parse_date
 
 HOURS_HX = 24
 HOURS_AHEAD = 1
+HOURS_FORECASTED = 24
 
      
-def generate_historical_ghi(df:pd.DataFrame, hours_ahead:int, hours_history:int):
+def generate_historical_ghi(df:pd.DataFrame, hours_ahead:int, hours_history:int, hours_forecasted:int):
   new_df = df.__deepcopy__()
   for hour_of_history in sorted(range(hours_history), reverse=True):
     hours_shifted = hour_of_history + hours_ahead
     new_df[f'ghi_km{hours_shifted}'] = df['ghi'].shift(-hours_shifted)
   
-  new_df['ghi_km1'] = df['ghi'].shift(-1)
-  new_df['ghi_kp1'] = df['ghi'].shift(1)
+  for hour_of_forecast in range(hours_history):
+      new_df[f'ghi_fcst{hour_of_forecast}'] = df['ghi'].shift(hour_of_forecast)
+  
+  new_df['ghi_fcst-1'] = df['ghi'].shift(-1)
+
   return new_df
 
-new_df = generate_historical_ghi(sample_df, hours_ahead=HOURS_AHEAD, hours_history=HOURS_HX).dropna()
+new_df = generate_historical_ghi(sample_df, hours_ahead=HOURS_AHEAD, hours_history=HOURS_HX, hours_forecasted=HOURS_FORECASTED).dropna()
 
 scaler = MinMaxScaler(feature_range=(0,1))
 scaled_columns = [column for column in new_df.columns if not 'timestamp' == column]
 new_df[scaled_columns] = scaler.fit_transform(new_df[scaled_columns])
 
 selected_features = [f'ghi_km{i+HOURS_AHEAD}' for i in range(HOURS_HX)]
+selected_targets = [f'ghi_fcst{i}' for i in range(HOURS_FORECASTED)]
 
 train_set = new_df[new_df['timestamp'].dt.year < 2021]
 validation_set = new_df[new_df['timestamp'].dt.year >= 2021]
@@ -87,15 +92,21 @@ validation_set = new_df[new_df['timestamp'].dt.year >= 2021]
 train_features = np.array(train_set.loc[:,selected_features].values)
 train_features_len = len(train_features)
 train_features = train_features.reshape(train_features_len, -1, HOURS_HX)
-train_targets = train_set.loc[:,['ghi', 'ghi_kp1']]
+
+train_targets = train_set.loc[:,selected_targets]
 
 validation_features = np.array(validation_set.loc[:,selected_features].values).reshape(len(validation_set), -1, HOURS_HX)
 
 # Explanation of LSTM model: https://stackoverflow.com/questions/50488427/what-is-the-architecture-behind-the-keras-lstm-cell
 
 model = tf.keras.Sequential([
-    tf.keras.layers.LSTM(24, input_shape=(None, HOURS_HX)),
-    tf.keras.layers.Dense(2, activation='relu')
+    tf.keras.layers.LSTM(48, return_sequences=True, input_shape=(None, HOURS_HX)),
+    tf.keras.layers.LSTM(48, return_sequences=True),
+    tf.keras.layers.LSTM(48, return_sequences=True),
+    tf.keras.layers.LSTM(48, return_sequences=True),
+    tf.keras.layers.LSTM(48, return_sequences=True),
+    tf.keras.layers.LSTM(48),
+    tf.keras.layers.Dense(HOURS_FORECASTED, activation='relu')
 ])
 model.summary()
 
@@ -109,11 +120,12 @@ model.fit(x = train_features, y = train_targets, epochs=25)
 
 model_pred = model.predict(validation_features)
 
-validation_true_values = validation_set.loc[:,['ghi', 'ghi_kp1']]
+validation_true_values = validation_set.loc[:,selected_targets]
 
 mse_for_model = mean_squared_error(y_true=validation_true_values, y_pred=model_pred) 
 
-persistence_predictions = validation_set.loc[:,['ghi_km1', 'ghi']]
+persistence_targets = [f'ghi_fcst{i-1}' for i in range(HOURS_FORECASTED)]
+persistence_predictions = validation_set.loc[:,persistence_targets]
 
 mse_for_persistence=mean_squared_error(y_true=validation_true_values, y_pred=persistence_predictions)
 
