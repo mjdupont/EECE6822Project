@@ -58,7 +58,10 @@ def align_data_for_model():
       print(f"RMSE of naive/persistence forecast for {file}: {rmse}")
 
 sample_df = pd.read_csv('data_cleaned/Bondville IL_observations.csv', parse_dates=['timestamp'])
-hours_ahead = 6
+
+HOURS_HX = 24
+HOURS_AHEAD = 1
+
      
 def generate_historical_ghi(df:pd.DataFrame, hours_ahead:int, hours_history:int):
   new_df = df.__deepcopy__()
@@ -66,31 +69,35 @@ def generate_historical_ghi(df:pd.DataFrame, hours_ahead:int, hours_history:int)
     hours_shifted = hour_of_history + hours_ahead
     new_df[f'ghi_km{hours_shifted}'] = df['ghi'].shift(-hours_shifted)
   
+  new_df['ghi_km1'] = df['ghi'].shift(-1)
+  new_df['ghi_kp1'] = df['ghi'].shift(1)
   return new_df
 
-new_df = generate_historical_ghi(sample_df, hours_ahead=1, hours_history=6).dropna()
+new_df = generate_historical_ghi(sample_df, hours_ahead=HOURS_AHEAD, hours_history=HOURS_HX).dropna()
 
 scaler = MinMaxScaler(feature_range=(0,1))
 scaled_columns = [column for column in new_df.columns if not 'timestamp' == column]
 new_df[scaled_columns] = scaler.fit_transform(new_df[scaled_columns])
 
-selected_features = [f'ghi_km{i+1}' for i in range(6)]
+selected_features = [f'ghi_km{i+HOURS_AHEAD}' for i in range(HOURS_HX)]
 
 train_set = new_df[new_df['timestamp'].dt.year < 2021]
 validation_set = new_df[new_df['timestamp'].dt.year >= 2021]
 
 train_features = np.array(train_set.loc[:,selected_features].values)
 train_features_len = len(train_features)
-train_features = train_features.reshape(train_features_len, -1, 6)
-print(train_features, train_features.shape)
-train_targets = train_set.loc[:,'ghi']
+train_features = train_features.reshape(train_features_len, -1, HOURS_HX)
+train_targets = train_set.loc[:,['ghi', 'ghi_kp1']]
 
-validation_features = np.array(validation_set.loc[:,selected_features].values).reshape(len(validation_set), -1, 6)
+validation_features = np.array(validation_set.loc[:,selected_features].values).reshape(len(validation_set), -1, HOURS_HX)
+
+# Explanation of LSTM model: https://stackoverflow.com/questions/50488427/what-is-the-architecture-behind-the-keras-lstm-cell
 
 model = tf.keras.Sequential([
-    tf.keras.layers.LSTM(6, input_shape=(None, 6)),
-    tf.keras.layers.Dense(1, activation='relu')
+    tf.keras.layers.LSTM(24, input_shape=(None, HOURS_HX)),
+    tf.keras.layers.Dense(2, activation='relu')
 ])
+model.summary()
 
 model.compile(
   loss='mse',
@@ -102,7 +109,12 @@ model.fit(x = train_features, y = train_targets, epochs=25)
 
 model_pred = model.predict(validation_features)
 
-mse_for_model = mean_squared_error(y_true=validation_set['ghi'], y_pred=model_pred) 
+validation_true_values = validation_set.loc[:,['ghi', 'ghi_kp1']]
 
-mse_for_persistence=mean_squared_error(y_true=train_set['ghi'], y_pred=train_set['ghi_km1'])
+mse_for_model = mean_squared_error(y_true=validation_true_values, y_pred=model_pred) 
+
+persistence_predictions = validation_set.loc[:,['ghi_km1', 'ghi']]
+
+mse_for_persistence=mean_squared_error(y_true=validation_true_values, y_pred=persistence_predictions)
+
 print(mse_for_persistence, mse_for_model)
