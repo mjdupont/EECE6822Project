@@ -61,7 +61,7 @@ sample_df = pd.read_csv('data_cleaned/Bondville IL_observations.csv', parse_date
 
 HOURS_HX = 24
 HOURS_AHEAD = 1
-HOURS_FORECASTED = 24
+HOURS_FORECASTED = 1
 
      
 def generate_historical_ghi(df:pd.DataFrame, hours_ahead:int, hours_history:int, hours_forecasted:int):
@@ -100,12 +100,7 @@ validation_features = np.array(validation_set.loc[:,selected_features].values).r
 # Explanation of LSTM model: https://stackoverflow.com/questions/50488427/what-is-the-architecture-behind-the-keras-lstm-cell
 
 model = tf.keras.Sequential([
-    tf.keras.layers.LSTM(48, return_sequences=True, input_shape=(None, HOURS_HX)),
-    tf.keras.layers.LSTM(48, return_sequences=True),
-    tf.keras.layers.LSTM(48, return_sequences=True),
-    tf.keras.layers.LSTM(48, return_sequences=True),
-    tf.keras.layers.LSTM(48, return_sequences=True),
-    tf.keras.layers.LSTM(48),
+    tf.keras.layers.LSTM(48, input_shape=(None, HOURS_HX)),
     tf.keras.layers.Dense(HOURS_FORECASTED, activation='relu')
 ])
 model.summary()
