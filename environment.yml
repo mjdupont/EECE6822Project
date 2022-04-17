@@ -90,6 +90,7 @@ dependencies:
   - pandas=1.4.2=py39h2e25243_0
   - pillow=9.1.0=py39ha53f419_0
   - pip=21.2.4=py39haa95532_0
+  - plotly=5.7.0=pyhd8ed1ab_0
   - protobuf=3.14.0=py39h415ef7b_1
   - pthread-stubs=0.4=hcd874cb_1001
   - pyasn1=0.4.8=py_0
@@ -121,6 +122,7 @@ dependencies:
   - snappy=1.1.8=ha925a31_3
   - sqlite=3.38.2=h2bbff1b_0
   - tbb=2021.5.0=h2d74725_1
+  - tenacity=8.0.1=pyhd8ed1ab_0
   - tensorboard=2.6.0=pyhd8ed1ab_1
   - tensorboard-data-server=0.6.0=py39hcbf5309_1
   - tensorboard-plugin-wit=1.8.1=pyhd8ed1ab_0
