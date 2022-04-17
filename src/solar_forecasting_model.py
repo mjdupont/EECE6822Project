@@ -4,6 +4,7 @@ import pandas as pd
 import numpy as np
 import datetime
 import plotly.graph_objects as go
+import sys
 
 
 import tensorflow as tf
@@ -34,6 +35,9 @@ STATIONS = [\
   'Sterling Virginia',                            
   'Millbrook NY',                                 
   ]
+NUM_EPOCHS = 25
+NUM_LAYERS = 2
+
 
 def seasonal_harmonics(datetime:pd.Timestamp):
 
@@ -58,29 +62,6 @@ def seasonal_harmonics(datetime:pd.Timestamp):
 
 HARMONIC_FEATURES = list(seasonal_harmonics(pd.Timestamp(datetime.datetime.now())).keys())
 
-
-def clean_data():
-  for root, dirs, files in os.walk(DATA_SRC_DIR):
-    for file in files:
-      file_path = os.path.join(root,file)
-      df = pd.read_csv(file_path, parse_dates=['timestamp']).set_index('timestamp')
-
-      ## Resample to 1 hour groups by mean.
-      df = df.resample(rule='1H').mean()
-
-      ## Remove unused features
-      ## Note 'quality flag' is a bitstring indicating quality issues with data, but these are calculated after data is uploaded to SFA.
-      ## They're removed both due to difficulty parsing, and because they only identify features already present in the data.
-      list_of_removed_substrings = ['dni', 'dhi', 'quality_flag']
-      filtered_columns = df.columns
-      for substring in list_of_removed_substrings:
-        filtered_columns = [col_name for col_name in filtered_columns if not substring in col_name]
-      df = df[filtered_columns]
-      # Clean negative values to disallow 0s
-      df.loc[:,'ghi'] = df.loc[:,'ghi'].apply(lambda x : max(0, x))
-      df.to_csv(os.path.join(DATA_CLEANED_DIR, (file)))
-    
-## clean_data()
 
 def historical_feature(feature:str, hours_shifted:int): return f'{feature}_history_km_{hours_shifted}'
 def persistence_forecast(feature:str, hours_shifted:int): return f''
@@ -151,7 +132,7 @@ def prepare_dataframe(df:pd.DataFrame, hours_ahead:int, hours_history:int, hours
   new_df = generate_persistence_fcst(new_df, hours_ahead, hours_forecasted)
 
 
-def build_and_train_model(train_features, train_targets, num_layers, num_neurons, num_epochs, num_features):
+def build_and_train_model(train_features, train_targets, num_layers, num_neurons, num_epochs, num_features, verbose):
 
   # Explanation of LSTM model: https://stackoverflow.com/questions/50488427/what-is-the-architecture-behind-the-keras-lstm-cell
   def lstm_layers(layer, len):
@@ -178,93 +159,135 @@ def build_and_train_model(train_features, train_targets, num_layers, num_neurons
     metrics=['mse']
   )
 
-  history = model.fit(x = train_features, y = train_targets, epochs=num_epochs)
+  history = model.fit(x = train_features, y = train_targets, epochs=num_epochs, verbose=verbose)
 
   return model, history
 
 
 #### Main Testing Loop
-### Test Cases:
+if __name__ == '__main__':
+  ## Set path to file directory
+  abspath = os.path.abspath(__file__)
+  dname = os.path.dirname(abspath)
+  os.chdir(dname)
 
-for station in STATIONS:
-  filename = f'data_cleaned/{station}_observations.csv'
-  dataframe = pd.read_csv(filename, parse_dates=['timestamp']).dropna()
-  additional_weather_signals = set(dataframe.columns).difference(['timestamp', 'ghi'])
+  accumulated_results = pd.DataFrame(columns=['Station', 'Features', 'Iteration', 'Persistence_Performance', 'Model_Performance'])
+  
+  for iteration in range(5):
+    for station in STATIONS:
+      filename = f'../data_cleaned/{station}_observations.csv'
+      dataframe = pd.read_csv(filename, parse_dates=['timestamp']).dropna()
+      additional_weather_features = set(dataframe.columns).difference(['timestamp', 'ghi'])
+
+      all_features = ['ghi'] + list(additional_weather_features)
+      ## Prepare dataframe, with boxed values for historical data
+      dataframe = generate_historical_features(dataframe, hours_ahead=HOURS_AHEAD, hours_history=HOURS_HX, hours_forecasted=HOURS_FORECASTED, features=all_features)
+      dataframe = generate_harmonic_historical_features(dataframe, hours_ahead=HOURS_AHEAD, hours_history=HOURS_HX)
+      dataframe = generate_persistence_fcst(dataframe, hours_ahead=HOURS_AHEAD, hours_forecasted=HOURS_FORECASTED).dropna()
+      
+      ## Partition Dataset
+      train_set = dataframe[dataframe['timestamp'].dt.year < 2021]
+      test_set = dataframe[dataframe['timestamp'].dt.year >= 2021]
+
+      ## Select which subset of features to train on
+      features_per_model = { \
+      'GHI_Only': ['ghi'],
+      'GHI_Harmonics': ['ghi'] + HARMONIC_FEATURES,
+      }
+      if len(additional_weather_features) > 0:
+        features_per_model.update({'GHI_Harmonics_Weather': ['ghi'] + HARMONIC_FEATURES + list(additional_weather_features)})
+      
+      ## Select output columns
+      target_columns = [f'ghi_actual_{i}' for i in range(HOURS_FORECASTED)]
+
+      for features, feature_list in features_per_model.items():
+        ## Make sure we have output directories made
+        if not os.path.isdir('../logs'):
+          try: os.mkdir('../logs')
+          except OSError as error: print(error)
+
+        ## Redirect output for logging
+        progress_file = open(f'../logs/{station}_{features}_{iteration}_log.txt', 'w')
+        summary_file = open(f'../logs/{station}_{features}_{iteration}_summary.txt', 'w')
+        sys.stdout = progress_file
+
+        num_features = len(feature_list) 
+        selected_features = [historical_feature(feature, i+HOURS_AHEAD) for i in range(HOURS_HX) for feature in feature_list]
+        num_neurons = math.ceil(math.sqrt(len(selected_features)))
 
 
+        ## Initialize scalers
+        feature_scaler = MinMaxScaler(feature_range=(0,1))
+        target_scaler = MinMaxScaler(feature_range=(0,1))
 
+        ## Scale train set features
+        training_inputs = np.array(train_set.loc[:,selected_features].values)
+        feature_scaler = feature_scaler.fit(training_inputs)
+        scaled_training_inputs = feature_scaler.transform(training_inputs)
+        scaled_training_inputs = scaled_training_inputs.reshape(len(training_inputs), HOURS_HX, num_features)
 
-sample_df = pd.read_csv('data_cleaned/Bondville IL_observations.csv', parse_dates=['timestamp']).dropna()
-new_df = generate_historical_features(sample_df, hours_ahead=HOURS_AHEAD, hours_history=HOURS_HX, hours_forecasted=HOURS_FORECASTED, features=SELECTED_FEATURES)
-new_df = generate_harmonic_historical_features(new_df, hours_ahead=HOURS_AHEAD, hours_history=HOURS_HX)
-new_df = generate_persistence_fcst(new_df, hours_ahead=HOURS_AHEAD, hours_forecasted=HOURS_FORECASTED)
-new_df = new_df.dropna()
-new_df = new_df[(new_df['timestamp'].dt.hour).isin(SELECTED_HOURS)]
+        ## Scale train set outputs
+        training_data_targets = train_set.loc[:,target_columns]
+        target_scaler = target_scaler.fit(training_data_targets)
+        scaled_train_targets = target_scaler.transform(training_data_targets)
 
-feature_scaler = MinMaxScaler(feature_range=(0,1))
-target_scaler = MinMaxScaler(feature_range=(0,1))
+        ## Train Model
+        model, history = build_and_train_model( \
+          train_features=scaled_training_inputs, 
+          train_targets=scaled_train_targets, 
+          num_neurons=num_neurons, 
+          num_layers=NUM_LAYERS, 
+          num_epochs=NUM_EPOCHS, 
+          num_features=num_features,
+          verbose=2,
+          )
 
-features_to_use = SELECTED_FEATURES + HARMONIC_FEATURES
-## Get relevant columns for predictions
-selected_features = [historical_feature(feature, i+HOURS_AHEAD) for i in range(HOURS_HX) for feature in features_to_use]
-num_features = len(features_to_use)
-target_columns = [f'ghi_actual_{i}' for i in range(HOURS_FORECASTED)]
+        progressFolder = f'../models/{station}_{features}_{iteration}'
+        ## Make sure we have a folder to write model to 
+        if not os.path.isdir(progressFolder):
+          try: os.mkdir(progressFolder)
+          except OSError as error:
+            print(error)
+          
+        ## Save model for later use
+        model.save_weights(os.path.join(progressFolder,'weightsFile.weights'))
 
-## Partition Dataset
-train_set = new_df[new_df['timestamp'].dt.year < 2021]
-test_set = new_df[new_df['timestamp'].dt.year >= 2021]
+        sys.stdout.flush()
+        sys.stdout=summary_file
+        progress_file.close()
+        
+        ## Evaluate Performance on Test Set
+        test_features = np.array(test_set.loc[:,selected_features].values)
+        scaled_test_features = feature_scaler.transform(test_features)
+        scaled_test_features = scaled_test_features.reshape(len(test_set), HOURS_HX, num_features)
 
-train_features = np.array(train_set.loc[:,selected_features].values)
-train_features_len = len(train_features)
+        model_predictions = model.predict(scaled_test_features)
+        model_predictions_unscaled = target_scaler.inverse_transform(model_predictions)
 
-feature_scaler = feature_scaler.fit(train_features)
-scaled_train_features = feature_scaler.transform(train_features)
-scaled_train_features = scaled_train_features.reshape(train_features_len, HOURS_HX, num_features)
-print(scaled_train_features.shape)
+        test_true_values = test_set.loc[:,target_columns]
 
-train_targets = train_set.loc[:,target_columns]
-target_scaler = target_scaler.fit(train_targets)
-scaled_train_targets = target_scaler.transform(train_targets)
+        rmse_for_model = math.sqrt(mean_squared_error(y_true=test_true_values, y_pred=model_predictions_unscaled)) 
 
-model, history = build_and_train_model(train_features=scaled_train_features, train_targets=scaled_train_targets, num_neurons=5, num_layers=1, num_epochs=10, num_features=num_features)
+        persistence_targets = [f'ghi_persistence_fcst_{i}' for i in range(HOURS_FORECASTED)]
+        persistence_predictions = test_set.loc[:,persistence_targets]
+        rmse_for_persistence=math.sqrt(mean_squared_error(y_true=test_true_values, y_pred=persistence_predictions))
 
+        print( \
+f'''Model:\t{station}_{features}
+num_features:\t{num_features}
+features:\t{feature_list}
+hours_history:\t{HOURS_HX}
+num_neurons:\t{num_neurons}
+num_epochs:\t{NUM_EPOCHS}
+num_layers:\t{NUM_LAYERS}
+'''
+        )
+        print(f'Persistence Accuracy: {rmse_for_persistence}, \t Model Accuracy: {rmse_for_model}')
+        sys.stdout.flush()
+        sys.stdout = sys.__stdout__
+        summary_file.close()
 
-test_features = np.array(test_set.loc[:,selected_features].values)
-scaled_test_features = feature_scaler.transform(test_features)
-scaled_test_features = scaled_test_features.reshape(len(test_set), -1, HOURS_HX)
-
-
-model_pred = model.predict(scaled_test_features)
-model_pred_unscaled = target_scaler.inverse_transform(model_pred)
-
-test_true_values = test_set.loc[:,target_columns]
-
-mse_for_model = mean_squared_error(y_true=test_true_values, y_pred=model_pred_unscaled) 
-
-persistence_targets = [f'ghi_persistence_fcst_{i}' for i in range(HOURS_FORECASTED)]
-persistence_predictions = test_set.loc[:,persistence_targets]
-mse_for_persistence=mean_squared_error(y_true=test_true_values, y_pred=persistence_predictions)
-
-print(f'Persistence Accuracy: {mse_for_persistence}, \t Model Accuracy: {mse_for_model}')
-
-model_pred_unscaled = pd.DataFrame(model_pred_unscaled, columns=test_true_values.columns)
-
-test_true_values.to_csv("test.csv")
-persistence_predictions.to_csv("persistence.csv")
-model_pred_unscaled.to_csv("model_pred.csv")
-
-y_max = max(new_df['ghi']) * 1.10
-
-for i in range(10):
-  true_values = test_true_values.iloc[i*24,:]
-  pers_values = persistence_predictions.iloc[i*24,:]
-  model_values = model_pred_unscaled.iloc[i*24,:]
-
-  x_values = [x for x in range(len(test_true_values))]
-  fig = go.Figure()
-  fig.add_trace(go.Scatter(x=x_values, y=true_values, name='Actual'))
-  fig.add_trace(go.Scatter(x=x_values, y=pers_values, name='Persistence'))
-  fig.add_trace(go.Scatter(x=x_values, y=model_values, name='Model'))
-  fig.update_yaxes(range=[0,y_max])
-  fig.update_layout(title=f'Index {i*24} forecast')
-  fig.show()
+        accumulated_results.loc[len(accumulated_results.index)] = [station, features, iteration, rmse_for_persistence, rmse_for_model]
+      ##End features loop
+    ## End station loop
+  accumulated_results.to_csv('accumulated_results.csv')
