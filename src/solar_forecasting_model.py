@@ -82,8 +82,8 @@ def clean_data():
     
 ## clean_data()
 
-def historical_feature(feature:str, hours_shifted:int):
-  return f'{feature}_history_km_{hours_shifted}'
+def historical_feature(feature:str, hours_shifted:int): return f'{feature}_history_km_{hours_shifted}'
+def persistence_forecast(feature:str, hours_shifted:int): return f''
 
 def generate_persistence_fcst(df:pd.DataFrame, hours_ahead:int, hours_forecasted:int):
   ## Calculate delay; Need the time-aligned 24 hour period before target hour in each array.
@@ -95,7 +95,8 @@ def generate_persistence_fcst(df:pd.DataFrame, hours_ahead:int, hours_forecasted
     ## Generate all ranges of actual values forecasted for this date
     hours_back = hour - (hours_forecasted + hours_ahead)
     hours_back_index = hours_back%24
-    df[f'ghi_fcst_{hours_back_index}'] = df['ghi'].shift(hours_back)
+    ## Note a shift 
+    df[f'ghi_persistence_fcst_{hours_back_index}'] = df['ghi'].shift(-hours_back)
   return df
 
      
@@ -106,11 +107,11 @@ def generate_historical_features(df:pd.DataFrame, hours_ahead:int, hours_history
   for feature in features:
     for hour_of_history in sorted(range(hours_history), reverse=True):
       hours_shifted = hour_of_history + hours_ahead
-      new_features.update({historical_feature(feature, hours_shifted): new_df[feature].shift(-hours_shifted)})
+      new_features.update({historical_feature(feature, hours_shifted): new_df[feature].shift(hours_shifted)})
 
   ## Target values
   for hour in range(hours_forecasted):
-    new_features.update({f'ghi_actual_{hour}': new_df['ghi'].shift(hour)})
+    new_features.update({f'ghi_actual_{hour}': new_df['ghi'].shift(-hour)})
 
   new_features_dataframe = pd.DataFrame(new_features)
   new_df = pd.concat([new_df, new_features_dataframe], axis=1)
@@ -137,7 +138,7 @@ def generate_harmonic_historical_features(df:pd.DataFrame, hours_ahead:int, hour
   for h_feature in HARMONIC_FEATURES:
     for hour_of_history in sorted(range(hours_history), reverse=True):
       hours_shifted = hour_of_history + hours_ahead
-      new_features.update({historical_feature(h_feature, hours_shifted): new_df[h_feature].shift(-hours_shifted)})
+      new_features.update({historical_feature(h_feature, hours_shifted): new_df[h_feature].shift(hours_shifted)})
 
   new_df = pd.concat([new_df,pd.DataFrame(new_features)], axis=1)
   ## Defragment DataFrame
@@ -150,16 +151,18 @@ def prepare_dataframe(df:pd.DataFrame, hours_ahead:int, hours_history:int, hours
   new_df = generate_persistence_fcst(new_df, hours_ahead, hours_forecasted)
 
 
-def build_and_train_model(train_features, train_targets, num_layers, num_neurons, num_epochs):
-  
-  train_rmse, test_rmse = list(), list()
+def build_and_train_model(train_features, train_targets, num_layers, num_neurons, num_epochs, num_features):
 
   # Explanation of LSTM model: https://stackoverflow.com/questions/50488427/what-is-the-architecture-behind-the-keras-lstm-cell
   def lstm_layers(layer, len):
     if len == 1:
-      return tf.keras.layers.LSTM(num_neurons, input_shape=(None, HOURS_HX))
+      return tf.keras.layers.LSTM(num_neurons, 
+      input_shape=(HOURS_HX, num_features)
+      )
     elif layer == 1:
-      return tf.keras.layers.LSTM(num_neurons, return_sequences=True, input_shape=(None, HOURS_HX))
+      return tf.keras.layers.LSTM(num_neurons, return_sequences=True, 
+      input_shape=(HOURS_HX, num_features)
+      )
     elif layer == len:
       return tf.keras.layers.LSTM(num_neurons)
     else :
@@ -175,19 +178,19 @@ def build_and_train_model(train_features, train_targets, num_layers, num_neurons
     metrics=['mse']
   )
 
-  model.fit(x = train_features, y = train_targets, epochs=num_epochs)
+  history = model.fit(x = train_features, y = train_targets, epochs=num_epochs)
 
-  return model
+  return model, history
 
 
 #### Main Testing Loop
 ### Test Cases:
 
-# for station in STATIONS:
-#   filename = f'data_cleaned/{station}_observations.csv'
-#   dataframe = pd.read_csv(filename, parse_dates=['timestamp']).dropna()
-#   additional_weather_signals = set(dataframe.columns).difference(['timestamp', 'ghi'])
-#   print(f'Station: {station}\tWeather Signals:{additional_weather_signals}')
+for station in STATIONS:
+  filename = f'data_cleaned/{station}_observations.csv'
+  dataframe = pd.read_csv(filename, parse_dates=['timestamp']).dropna()
+  additional_weather_signals = set(dataframe.columns).difference(['timestamp', 'ghi'])
+
 
 
 
@@ -198,61 +201,70 @@ new_df = generate_persistence_fcst(new_df, hours_ahead=HOURS_AHEAD, hours_foreca
 new_df = new_df.dropna()
 new_df = new_df[(new_df['timestamp'].dt.hour).isin(SELECTED_HOURS)]
 
+feature_scaler = MinMaxScaler(feature_range=(0,1))
+target_scaler = MinMaxScaler(feature_range=(0,1))
 
-feature_scaler = MinMaxScaler(feature_range=(-1,1))
-target_scaler = MinMaxScaler(feature_range=(-1,1))
+features_to_use = SELECTED_FEATURES + HARMONIC_FEATURES
+## Get relevant columns for predictions
+selected_features = [historical_feature(feature, i+HOURS_AHEAD) for i in range(HOURS_HX) for feature in features_to_use]
+num_features = len(features_to_use)
+target_columns = [f'ghi_actual_{i}' for i in range(HOURS_FORECASTED)]
 
-# scaler = MinMaxScaler(feature_range=(0,1))
-# scaled_columns = [column for column in new_df.columns if not 'timestamp' == column]
-
-# new_df[scaled_columns] = scaler.fit_transform(new_df[scaled_columns])
-
-selected_features = [historical_feature(feature, i+HOURS_AHEAD) for i in range(HOURS_HX) for feature in SELECTED_FEATURES + HARMONIC_FEATURES]
-selected_targets = [f'ghi_actual_{i}' for i in range(HOURS_FORECASTED)]
-
+## Partition Dataset
 train_set = new_df[new_df['timestamp'].dt.year < 2021]
-validation_set = new_df[new_df['timestamp'].dt.year >= 2021]
-print(f'Validation Set Size: {len(validation_set)}')
+test_set = new_df[new_df['timestamp'].dt.year >= 2021]
 
 train_features = np.array(train_set.loc[:,selected_features].values)
 train_features_len = len(train_features)
-print(f'Number of training features: {len(selected_features)}')
 
 feature_scaler = feature_scaler.fit(train_features)
 scaled_train_features = feature_scaler.transform(train_features)
-scaled_train_features = scaled_train_features.reshape(train_features_len, -1, HOURS_HX)
+scaled_train_features = scaled_train_features.reshape(train_features_len, HOURS_HX, num_features)
+print(scaled_train_features.shape)
 
-train_targets = train_set.loc[:,selected_targets]
+train_targets = train_set.loc[:,target_columns]
 target_scaler = target_scaler.fit(train_targets)
 scaled_train_targets = target_scaler.transform(train_targets)
 
-validation_features = np.array(validation_set.loc[:,selected_features].values)
-scaled_validation_features = feature_scaler.transform(validation_features)
-scaled_validation_features = scaled_validation_features.reshape(len(validation_set), -1, HOURS_HX)
+model, history = build_and_train_model(train_features=scaled_train_features, train_targets=scaled_train_targets, num_neurons=5, num_layers=1, num_epochs=10, num_features=num_features)
 
 
+test_features = np.array(test_set.loc[:,selected_features].values)
+scaled_test_features = feature_scaler.transform(test_features)
+scaled_test_features = scaled_test_features.reshape(len(test_set), -1, HOURS_HX)
 
-model = build_and_train_model(train_features=scaled_train_features, train_targets=scaled_train_targets, num_neurons=24, num_layers=2, num_epochs=1)
-model_pred = model.predict(scaled_validation_features)
+
+model_pred = model.predict(scaled_test_features)
 model_pred_unscaled = target_scaler.inverse_transform(model_pred)
 
-test_true_values = validation_set.loc[:,selected_targets]
+test_true_values = test_set.loc[:,target_columns]
 
 mse_for_model = mean_squared_error(y_true=test_true_values, y_pred=model_pred_unscaled) 
 
-persistence_targets = [f'ghi_fcst_{i}' for i in range(HOURS_FORECASTED)]
-persistence_predictions = validation_set.loc[:,persistence_targets]
+persistence_targets = [f'ghi_persistence_fcst_{i}' for i in range(HOURS_FORECASTED)]
+persistence_predictions = test_set.loc[:,persistence_targets]
 mse_for_persistence=mean_squared_error(y_true=test_true_values, y_pred=persistence_predictions)
 
 print(f'Persistence Accuracy: {mse_for_persistence}, \t Model Accuracy: {mse_for_model}')
 
-print(test_true_values)
-print(persistence_predictions)
-print(model_pred_unscaled)
+model_pred_unscaled = pd.DataFrame(model_pred_unscaled, columns=test_true_values.columns)
 
-x_values = [x for x in range(len(test_true_values))]
-fig = go.Figure()
-fig.add_trace(go.Scatter(x=x_values, y=test_true_values))
-fig.add_trace(go.Scatter(x=x_values, y=persistence_predictions))
-fig.add_trace(go.Scatter(x=x_values, y=model_pred_unscaled))
-fig.show()
+test_true_values.to_csv("test.csv")
+persistence_predictions.to_csv("persistence.csv")
+model_pred_unscaled.to_csv("model_pred.csv")
+
+y_max = max(new_df['ghi']) * 1.10
+
+for i in range(10):
+  true_values = test_true_values.iloc[i*24,:]
+  pers_values = persistence_predictions.iloc[i*24,:]
+  model_values = model_pred_unscaled.iloc[i*24,:]
+
+  x_values = [x for x in range(len(test_true_values))]
+  fig = go.Figure()
+  fig.add_trace(go.Scatter(x=x_values, y=true_values, name='Actual'))
+  fig.add_trace(go.Scatter(x=x_values, y=pers_values, name='Persistence'))
+  fig.add_trace(go.Scatter(x=x_values, y=model_values, name='Model'))
+  fig.update_yaxes(range=[0,y_max])
+  fig.update_layout(title=f'Index {i*24} forecast')
+  fig.show()
