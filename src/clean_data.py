@@ -16,7 +16,7 @@ def clean_data():
       ## Remove unused features
       ## Note 'quality flag' is a bitstring indicating quality issues with data, but these are calculated after data is uploaded to SFA.
       ## They're removed both due to difficulty parsing, and because they only identify features already present in the data.
-      list_of_removed_substrings = ['dni', 'dhi', 'quality_flag']
+      list_of_removed_substrings = ['quality_flag']
       filtered_columns = df.columns
       for substring in list_of_removed_substrings:
         filtered_columns = [col_name for col_name in filtered_columns if not substring in col_name]
