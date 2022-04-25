@@ -1,0 +1,9 @@
+Model:	Salt Lake City Utah_GHI_Harmonics
+num_features:	13
+features:	['ghi', 'cos1doy', 'sin1doy', 'cos2doy', 'sin2doy', 'cos4doy', 'sin4doy', 'cos1hod', 'sin1hod', 'cos2hod', 'sin2hod', 'cos4hod', 'sin4hod']
+hours_history:	24
+num_neurons:	24
+num_epochs:	28
+num_layers:	2
+
+Persistence Accuracy: 130.50249959483472, 	 Model Accuracy: 101.72360494059046

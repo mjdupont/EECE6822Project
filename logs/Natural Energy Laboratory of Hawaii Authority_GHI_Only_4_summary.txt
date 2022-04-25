@@ -1,0 +1,9 @@
+Model:	Natural Energy Laboratory of Hawaii Authority_GHI_Only
+num_features:	1
+features:	['ghi']
+hours_history:	24
+num_neurons:	24
+num_epochs:	32
+num_layers:	2
+
+Persistence Accuracy: 120.56930830830022, 	 Model Accuracy: 95.6951246781653

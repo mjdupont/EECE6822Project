@@ -2,7 +2,6 @@ import math
 import os
 import pandas as pd
 import numpy as np
-import datetime
 import plotly.graph_objects as go
 import sys
 
@@ -14,198 +13,10 @@ from tensorflow.keras.utils import Sequence
 from datetime import timedelta
 from sklearn.preprocessing import MinMaxScaler
 from sklearn.metrics import mean_squared_error
+from src.constants import HARMONIC_FEATURES, HOURS_AHEAD, HOURS_FORECASTED, HOURS_HX, NUM_EPOCHS, NUM_LAYERS, STATIONS
+from src.generate_features import generate_harmonic_historical_features, generate_historical_features, generate_persistence_fcst, historical_feature
 
-DATA_SRC_DIR = "data_src/"
-DATA_CLEANED_DIR = "data_cleaned/"
-HOURS_HX = 24
-HOURS_AHEAD = 1
-HOURS_FORECASTED = 24
-SELECTED_FEATURES = ['ghi',]
-ALL_HOURS = [x for x in range(24)]
-SELECTED_HOURS = ALL_HOURS#[0]
-STATIONS = [\
-  'Natural Energy Laboratory of Hawaii Authority',
-  'Seattle Washington',                           
-  'Hanford California',                           
-  'Salt Lake City Utah',                          
-  'Table Mountain Boulder CO',                    
-  'Goodwin Creek MS',                             
-  'Bondville IL',                                 
-  'Titusville FL',                                
-  'Sterling Virginia',                            
-  'Millbrook NY',                                 
-  ]
-NUM_EPOCHS = 25
-NUM_LAYERS = 2
-
-
-def seasonal_harmonics(datetime:pd.Timestamp):
-
-  dayofyear = datetime.dayofyear
-  hourofday = datetime.hour
-  results = \
-    dict( \
-      cos1doy = np.cos(np.pi * 1 * dayofyear / 365),
-      sin1doy = np.sin(np.pi * 2 * dayofyear / 365),
-      cos2doy = np.cos(np.pi * 2 * dayofyear / 365),
-      sin2doy = np.sin(np.pi * 2 * dayofyear / 365),
-      cos4doy = np.cos(np.pi * 4 * dayofyear / 365),
-      sin4doy = np.sin(np.pi * 4 * dayofyear / 365),
-      cos1hod = np.cos(np.pi * 1 * hourofday /  24),
-      sin1hod = np.sin(np.pi * 1 * hourofday /  24),
-      cos2hod = np.cos(np.pi * 2 * hourofday /  24),
-      sin2hod = np.sin(np.pi * 2 * hourofday /  24),
-      cos4hod = np.cos(np.pi * 4 * hourofday /  24),
-      sin4hod = np.sin(np.pi * 4 * hourofday /  24),
-      )
-  return results
-
-HARMONIC_FEATURES = list(seasonal_harmonics(pd.Timestamp(datetime.datetime.now())).keys())
-
-
-def historical_feature(feature:str, hours_shifted:int): return f'{feature}_history_km_{hours_shifted}'
-def persistence_forecast(feature:str, hours_shifted:int): return f''
-
-def generate_persistence_fcst(df:pd.DataFrame, hours_ahead:int, hours_forecasted:int):
-  ## Calculate delay; Need the time-aligned 24 hour period before target hour in each array.
-  ## For example, with 24 horus forecasted, and 6 hour delay, we want to grab the 24 hours of values before time -6 hours
-  ## These data then need to be aligned with the 24 hours forecasted.
-  df = df.__deepcopy__()
-
-  for hour in range(hours_forecasted):
-    ## Generate all ranges of actual values forecasted for this date
-    hours_back = hour - (hours_forecasted + hours_ahead)
-    hours_back_index = hours_back%24
-    ## Note a shift 
-    df[f'ghi_persistence_fcst_{hours_back_index}'] = df['ghi'].shift(-hours_back)
-  return df
-
-     
-def generate_historical_features(df:pd.DataFrame, hours_ahead:int, hours_history:int, hours_forecasted:int, features:list[str]):
-  new_df = df.__deepcopy__()
-  ## All Weather Features
-  new_features = dict()
-  for feature in features:
-    for hour_of_history in sorted(range(hours_history), reverse=True):
-      hours_shifted = hour_of_history + hours_ahead
-      new_features.update({historical_feature(feature, hours_shifted): new_df[feature].shift(hours_shifted)})
-
-  ## Target values
-  for hour in range(hours_forecasted):
-    new_features.update({f'ghi_actual_{hour}': new_df['ghi'].shift(-hour)})
-
-  new_features_dataframe = pd.DataFrame(new_features)
-  new_df = pd.concat([new_df, new_features_dataframe], axis=1)
-
-  ## Defragment DataFrame
-  return new_df.copy()
-
-def generate_harmonic_features(df:pd.DataFrame):
-  new_df = df.__deepcopy__()
-  seasonal_features = new_df['timestamp'].apply(lambda x : seasonal_harmonics(x))
-  new_features = dict()
-  for h_feature in HARMONIC_FEATURES:
-    new_features.update({h_feature: seasonal_features.apply(lambda row: row[h_feature])})
-
-  new_df = pd.concat([new_df,pd.DataFrame(new_features)], axis=1)
-
-  ## Defragment DataFrame
-  return new_df
-
-def generate_harmonic_historical_features(df:pd.DataFrame, hours_ahead:int, hours_history:int):
-  new_df = generate_harmonic_features(df)
-  
-  new_features = dict()
-  for h_feature in HARMONIC_FEATURES:
-    for hour_of_history in sorted(range(hours_history), reverse=True):
-      hours_shifted = hour_of_history + hours_ahead
-      new_features.update({historical_feature(h_feature, hours_shifted): new_df[h_feature].shift(hours_shifted)})
-
-  new_df = pd.concat([new_df,pd.DataFrame(new_features)], axis=1)
-  ## Defragment DataFrame
-  return new_df.copy()
-
-def prepare_dataframe(df:pd.DataFrame, hours_ahead:int, hours_history:int, hours_forecasted:int, features:list[str], include_harmonics:bool):
-  new_df = generate_historical_features(df, hours_ahead=hours_ahead, hours_history=hours_history, hours_forecasted=hours_forecasted, features=features)
-  if include_harmonics:
-    new_df = generate_harmonic_historical_features(new_df, hours_ahead, hours_history)
-  new_df = generate_persistence_fcst(new_df, hours_ahead, hours_forecasted)
-
-
-def build_and_train_model(train_features, train_targets, num_layers, num_neurons, num_epochs, num_features, verbose):
-
-  # Explanation of LSTM model: https://stackoverflow.com/questions/50488427/what-is-the-architecture-behind-the-keras-lstm-cell
-  def lstm_layers(layer, len):
-    if len == 1:
-      return tf.keras.layers.LSTM(num_neurons, 
-      input_shape=(HOURS_HX, num_features)
-      )
-    elif layer == 1:
-      return tf.keras.layers.LSTM(num_neurons, return_sequences=True, 
-      input_shape=(HOURS_HX, num_features)
-      )
-    elif layer == len:
-      return tf.keras.layers.LSTM(num_neurons)
-    else :
-      return tf.keras.layers.LSTM(num_neurons, return_sequences=True)
-
-  model_layers = [lstm_layers(layer+1, num_layers) for layer in range(num_layers)] + [ tf.keras.layers.Dense(HOURS_FORECASTED, activation='relu') ]
-
-  model = tf.keras.Sequential(model_layers)
-
-  model.compile(
-    loss='mse',
-    optimizer='adam',
-    metrics=['mse']
-  )
-
-  history = model.fit(x = train_features, y = train_targets, epochs=num_epochs, verbose=verbose)
-
-  return model, history
-
-def build_and_train_model_validation_hx(train_features, train_targets, validation_features, validation_targets, target_scaler:MinMaxScaler, num_layers, num_neurons, num_epochs, num_features, verbose):
-  
-  # Explanation of LSTM model: https://stackoverflow.com/questions/50488427/what-is-the-architecture-behind-the-keras-lstm-cell
-  def lstm_layers(layer, len):
-    if len == 1:
-      return tf.keras.layers.LSTM(num_neurons, 
-      input_shape=(HOURS_HX, num_features)
-      )
-    elif layer == 1:
-      return tf.keras.layers.LSTM(num_neurons, return_sequences=True, 
-      input_shape=(HOURS_HX, num_features)
-      )
-    elif layer == len:
-      return tf.keras.layers.LSTM(num_neurons)
-    else :
-      return tf.keras.layers.LSTM(num_neurons, return_sequences=True)
-
-  model_layers = [lstm_layers(layer+1, num_layers) for layer in range(num_layers)] + [ tf.keras.layers.Dense(HOURS_FORECASTED, activation='relu') ]
-
-  model = tf.keras.Sequential(model_layers)
-
-  model.compile(
-    loss='mse',
-    optimizer='adam',
-    metrics=['mse']
-  )
-
-  train_rmse_history = list()
-  validation_rmse_history = list()
-  
-  for epoch in range(num_epochs):
-    history = model.fit(x = train_features, y = train_targets, epochs=1, verbose=verbose)
-    train_true= target_scaler.inverse_transform(train_targets)
-    validation_true = target_scaler.inverse_transform(validation_targets)
-    train_pred = target_scaler.inverse_transform(model.predict(train_features))
-    validation_pred = target_scaler.inverse_transform(model.predict(validation_features))
-    train_rmse = math.sqrt(mean_squared_error(y_true=train_true, y_pred=train_pred))
-    validation_rmse = math.sqrt(mean_squared_error(y_true=validation_true, y_pred=validation_pred))
-  
-    train_rmse_history = train_rmse_history + [train_rmse]
-    validation_rmse_history = validation_rmse_history + [validation_rmse]
-
-  return model, history, (train_rmse_history, validation_rmse_history)
+from src.models import build_and_train_model_validation_early_stop
 
 #### Main Testing Loop
 if __name__ == '__main__':
@@ -256,8 +67,7 @@ if __name__ == '__main__':
 
         num_features = len(feature_list) 
         selected_features = [historical_feature(feature, i+HOURS_AHEAD) for i in range(HOURS_HX) for feature in feature_list]
-        num_neurons = math.ceil(math.sqrt(len(selected_features)))
-
+        num_neurons = 24
 
         ## Initialize scalers
         feature_scaler = MinMaxScaler(feature_range=(0,1))
@@ -275,7 +85,7 @@ if __name__ == '__main__':
         scaled_train_targets = target_scaler.transform(training_data_targets)
 
         ## Train Model
-        model, history = build_and_train_model( \
+        model, history = build_and_train_model_validation_early_stop( \
           train_features=scaled_training_inputs, 
           train_targets=scaled_train_targets, 
           num_neurons=num_neurons, 
@@ -283,6 +93,7 @@ if __name__ == '__main__':
           num_epochs=NUM_EPOCHS, 
           num_features=num_features,
           verbose=2,
+          patience=5,
           )
 
         progressFolder = f'../models/{station}_{features}_{iteration}'
@@ -293,7 +104,7 @@ if __name__ == '__main__':
             print(error)
           
         ## Save model for later use
-        model.save_weights(os.path.join(progressFolder,'weightsFile.weights'))
+        model.save(os.path.join(progressFolder,f'{station}_{features}_{iteration}_model.mdl'))
 
         sys.stdout.flush()
         sys.stdout=summary_file
@@ -314,6 +125,8 @@ if __name__ == '__main__':
         persistence_targets = [f'ghi_persistence_fcst_{i}' for i in range(HOURS_FORECASTED)]
         persistence_predictions = test_set.loc[:,persistence_targets]
         rmse_for_persistence=math.sqrt(mean_squared_error(y_true=test_true_values, y_pred=persistence_predictions))
+        
+        epochs_run_for = len(history.history['loss'])
 
         print( \
 f'''Model:\t{station}_{features}
@@ -321,7 +134,7 @@ num_features:\t{num_features}
 features:\t{feature_list}
 hours_history:\t{HOURS_HX}
 num_neurons:\t{num_neurons}
-num_epochs:\t{NUM_EPOCHS}
+num_epochs:\t{epochs_run_for}
 num_layers:\t{NUM_LAYERS}
 '''
         )

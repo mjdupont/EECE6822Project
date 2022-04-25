@@ -1,0 +1,62 @@
+Epoch 1/500
+460/460 - 13s - loss: 0.0286 - mse: 0.0286 - val_loss: 0.0209 - val_mse: 0.0209
+Epoch 2/500
+460/460 - 7s - loss: 0.0206 - mse: 0.0206 - val_loss: 0.0202 - val_mse: 0.0202
+Epoch 3/500
+460/460 - 7s - loss: 0.0200 - mse: 0.0200 - val_loss: 0.0194 - val_mse: 0.0194
+Epoch 4/500
+460/460 - 7s - loss: 0.0178 - mse: 0.0178 - val_loss: 0.0169 - val_mse: 0.0169
+Epoch 5/500
+460/460 - 7s - loss: 0.0168 - mse: 0.0168 - val_loss: 0.0161 - val_mse: 0.0161
+Epoch 6/500
+460/460 - 7s - loss: 0.0162 - mse: 0.0162 - val_loss: 0.0157 - val_mse: 0.0157
+Epoch 7/500
+460/460 - 7s - loss: 0.0156 - mse: 0.0156 - val_loss: 0.0150 - val_mse: 0.0150
+Epoch 8/500
+460/460 - 7s - loss: 0.0153 - mse: 0.0153 - val_loss: 0.0150 - val_mse: 0.0150
+Epoch 9/500
+460/460 - 7s - loss: 0.0150 - mse: 0.0150 - val_loss: 0.0150 - val_mse: 0.0150
+Epoch 10/500
+460/460 - 7s - loss: 0.0147 - mse: 0.0147 - val_loss: 0.0143 - val_mse: 0.0143
+Epoch 11/500
+460/460 - 7s - loss: 0.0147 - mse: 0.0147 - val_loss: 0.0144 - val_mse: 0.0144
+Epoch 12/500
+460/460 - 7s - loss: 0.0145 - mse: 0.0145 - val_loss: 0.0141 - val_mse: 0.0141
+Epoch 13/500
+460/460 - 7s - loss: 0.0143 - mse: 0.0143 - val_loss: 0.0144 - val_mse: 0.0144
+Epoch 14/500
+460/460 - 7s - loss: 0.0141 - mse: 0.0141 - val_loss: 0.0138 - val_mse: 0.0138
+Epoch 15/500
+460/460 - 7s - loss: 0.0141 - mse: 0.0141 - val_loss: 0.0136 - val_mse: 0.0136
+Epoch 16/500
+460/460 - 7s - loss: 0.0141 - mse: 0.0141 - val_loss: 0.0135 - val_mse: 0.0135
+Epoch 17/500
+460/460 - 7s - loss: 0.0139 - mse: 0.0139 - val_loss: 0.0135 - val_mse: 0.0135
+Epoch 18/500
+460/460 - 7s - loss: 0.0138 - mse: 0.0138 - val_loss: 0.0135 - val_mse: 0.0135
+Epoch 19/500
+460/460 - 7s - loss: 0.0137 - mse: 0.0137 - val_loss: 0.0133 - val_mse: 0.0133
+Epoch 20/500
+460/460 - 7s - loss: 0.0137 - mse: 0.0137 - val_loss: 0.0131 - val_mse: 0.0131
+Epoch 21/500
+460/460 - 7s - loss: 0.0136 - mse: 0.0136 - val_loss: 0.0132 - val_mse: 0.0132
+Epoch 22/500
+460/460 - 7s - loss: 0.0135 - mse: 0.0135 - val_loss: 0.0131 - val_mse: 0.0131
+Epoch 23/500
+460/460 - 7s - loss: 0.0134 - mse: 0.0134 - val_loss: 0.0130 - val_mse: 0.0130
+Epoch 24/500
+460/460 - 7s - loss: 0.0135 - mse: 0.0135 - val_loss: 0.0133 - val_mse: 0.0133
+Epoch 25/500
+460/460 - 7s - loss: 0.0134 - mse: 0.0134 - val_loss: 0.0130 - val_mse: 0.0130
+Epoch 26/500
+460/460 - 7s - loss: 0.0133 - mse: 0.0133 - val_loss: 0.0129 - val_mse: 0.0129
+Epoch 27/500
+460/460 - 7s - loss: 0.0133 - mse: 0.0133 - val_loss: 0.0129 - val_mse: 0.0129
+Epoch 28/500
+460/460 - 7s - loss: 0.0132 - mse: 0.0132 - val_loss: 0.0137 - val_mse: 0.0137
+Epoch 29/500
+460/460 - 7s - loss: 0.0132 - mse: 0.0132 - val_loss: 0.0139 - val_mse: 0.0139
+Epoch 30/500
+460/460 - 7s - loss: 0.0133 - mse: 0.0133 - val_loss: 0.0130 - val_mse: 0.0130
+Epoch 31/500
+460/460 - 7s - loss: 0.0132 - mse: 0.0132 - val_loss: 0.0139 - val_mse: 0.0139

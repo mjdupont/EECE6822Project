@@ -1,0 +1,9 @@
+Model:	Salt Lake City Utah_GHI_Only
+num_features:	1
+features:	['ghi']
+hours_history:	24
+num_neurons:	24
+num_epochs:	21
+num_layers:	2
+
+Persistence Accuracy: 130.50249959483472, 	 Model Accuracy: 102.61924162953673

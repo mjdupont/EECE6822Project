@@ -1,0 +1,9 @@
+Model:	Hanford California_GHI_Only
+num_features:	1
+features:	['ghi']
+hours_history:	24
+num_neurons:	24
+num_epochs:	46
+num_layers:	2
+
+Persistence Accuracy: 83.97310389651767, 	 Model Accuracy: 70.91735415872004

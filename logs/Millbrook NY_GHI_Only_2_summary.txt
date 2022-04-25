@@ -1,0 +1,9 @@
+Model:	Millbrook NY_GHI_Only
+num_features:	1
+features:	['ghi']
+hours_history:	24
+num_neurons:	24
+num_epochs:	41
+num_layers:	2
+
+Persistence Accuracy: 145.58513607999345, 	 Model Accuracy: 109.10098367718756

@@ -1,0 +1,9 @@
+Model:	Sterling Virginia_GHI_Only
+num_features:	1
+features:	['ghi']
+hours_history:	24
+num_neurons:	24
+num_epochs:	51
+num_layers:	2
+
+Persistence Accuracy: 153.40868464738878, 	 Model Accuracy: 116.27461495372243

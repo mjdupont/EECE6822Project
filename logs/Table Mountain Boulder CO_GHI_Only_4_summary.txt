@@ -1,0 +1,9 @@
+Model:	Table Mountain Boulder CO_GHI_Only
+num_features:	1
+features:	['ghi']
+hours_history:	24
+num_neurons:	24
+num_epochs:	24
+num_layers:	2
+
+Persistence Accuracy: 135.914752545711, 	 Model Accuracy: 107.85855157600885

@@ -1,0 +1,44 @@
+Epoch 1/500
+492/492 - 12s - loss: 0.0225 - mse: 0.0225 - val_loss: 0.0156 - val_mse: 0.0156
+Epoch 2/500
+492/492 - 8s - loss: 0.0134 - mse: 0.0134 - val_loss: 0.0134 - val_mse: 0.0134
+Epoch 3/500
+492/492 - 8s - loss: 0.0128 - mse: 0.0128 - val_loss: 0.0127 - val_mse: 0.0127
+Epoch 4/500
+492/492 - 8s - loss: 0.0123 - mse: 0.0123 - val_loss: 0.0125 - val_mse: 0.0125
+Epoch 5/500
+492/492 - 8s - loss: 0.0119 - mse: 0.0119 - val_loss: 0.0120 - val_mse: 0.0120
+Epoch 6/500
+492/492 - 8s - loss: 0.0116 - mse: 0.0116 - val_loss: 0.0117 - val_mse: 0.0117
+Epoch 7/500
+492/492 - 8s - loss: 0.0114 - mse: 0.0114 - val_loss: 0.0114 - val_mse: 0.0114
+Epoch 8/500
+492/492 - 8s - loss: 0.0112 - mse: 0.0112 - val_loss: 0.0112 - val_mse: 0.0112
+Epoch 9/500
+492/492 - 8s - loss: 0.0110 - mse: 0.0110 - val_loss: 0.0110 - val_mse: 0.0110
+Epoch 10/500
+492/492 - 8s - loss: 0.0110 - mse: 0.0110 - val_loss: 0.0114 - val_mse: 0.0114
+Epoch 11/500
+492/492 - 8s - loss: 0.0109 - mse: 0.0109 - val_loss: 0.0109 - val_mse: 0.0109
+Epoch 12/500
+492/492 - 8s - loss: 0.0109 - mse: 0.0109 - val_loss: 0.0110 - val_mse: 0.0110
+Epoch 13/500
+492/492 - 8s - loss: 0.0107 - mse: 0.0107 - val_loss: 0.0110 - val_mse: 0.0110
+Epoch 14/500
+492/492 - 8s - loss: 0.0107 - mse: 0.0107 - val_loss: 0.0111 - val_mse: 0.0111
+Epoch 15/500
+492/492 - 8s - loss: 0.0106 - mse: 0.0106 - val_loss: 0.0108 - val_mse: 0.0108
+Epoch 16/500
+492/492 - 8s - loss: 0.0106 - mse: 0.0106 - val_loss: 0.0107 - val_mse: 0.0107
+Epoch 17/500
+492/492 - 8s - loss: 0.0105 - mse: 0.0105 - val_loss: 0.0106 - val_mse: 0.0106
+Epoch 18/500
+492/492 - 8s - loss: 0.0105 - mse: 0.0105 - val_loss: 0.0111 - val_mse: 0.0111
+Epoch 19/500
+492/492 - 8s - loss: 0.0104 - mse: 0.0104 - val_loss: 0.0107 - val_mse: 0.0107
+Epoch 20/500
+492/492 - 8s - loss: 0.0104 - mse: 0.0104 - val_loss: 0.0108 - val_mse: 0.0108
+Epoch 21/500
+492/492 - 8s - loss: 0.0103 - mse: 0.0103 - val_loss: 0.0108 - val_mse: 0.0108
+Epoch 22/500
+492/492 - 8s - loss: 0.0103 - mse: 0.0103 - val_loss: 0.0107 - val_mse: 0.0107

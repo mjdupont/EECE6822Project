@@ -1,0 +1,9 @@
+Model:	Goodwin Creek MS_GHI_Only
+num_features:	1
+features:	['ghi']
+hours_history:	24
+num_neurons:	24
+num_epochs:	18
+num_layers:	2
+
+Persistence Accuracy: 151.48053461722208, 	 Model Accuracy: 122.8433819710856

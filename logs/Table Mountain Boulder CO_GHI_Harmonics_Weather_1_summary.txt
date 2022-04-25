@@ -1,0 +1,9 @@
+Model:	Table Mountain Boulder CO_GHI_Harmonics_Weather
+num_features:	17
+features:	['ghi', 'cos1doy', 'sin1doy', 'cos2doy', 'sin2doy', 'cos4doy', 'sin4doy', 'cos1hod', 'sin1hod', 'cos2hod', 'sin2hod', 'cos4hod', 'sin4hod', 'wind_speed', 'dhi', 'dni', 'air_temperature']
+hours_history:	24
+num_neurons:	24
+num_epochs:	25
+num_layers:	2
+
+Persistence Accuracy: 135.914752545711, 	 Model Accuracy: 106.78280739599226

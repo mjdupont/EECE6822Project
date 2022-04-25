@@ -1,0 +1,36 @@
+Epoch 1/500
+523/523 - 13s - loss: 0.0177 - mse: 0.0177 - val_loss: 0.0092 - val_mse: 0.0092
+Epoch 2/500
+523/523 - 9s - loss: 0.0080 - mse: 0.0080 - val_loss: 0.0089 - val_mse: 0.0089
+Epoch 3/500
+523/523 - 8s - loss: 0.0079 - mse: 0.0079 - val_loss: 0.0088 - val_mse: 0.0088
+Epoch 4/500
+523/523 - 9s - loss: 0.0079 - mse: 0.0079 - val_loss: 0.0088 - val_mse: 0.0088
+Epoch 5/500
+523/523 - 8s - loss: 0.0079 - mse: 0.0079 - val_loss: 0.0086 - val_mse: 0.0086
+Epoch 6/500
+523/523 - 8s - loss: 0.0078 - mse: 0.0078 - val_loss: 0.0088 - val_mse: 0.0088
+Epoch 7/500
+523/523 - 8s - loss: 0.0078 - mse: 0.0078 - val_loss: 0.0091 - val_mse: 0.0091
+Epoch 8/500
+523/523 - 8s - loss: 0.0078 - mse: 0.0078 - val_loss: 0.0088 - val_mse: 0.0088
+Epoch 9/500
+523/523 - 8s - loss: 0.0047 - mse: 0.0047 - val_loss: 0.0041 - val_mse: 0.0041
+Epoch 10/500
+523/523 - 8s - loss: 0.0034 - mse: 0.0034 - val_loss: 0.0040 - val_mse: 0.0040
+Epoch 11/500
+523/523 - 8s - loss: 0.0034 - mse: 0.0034 - val_loss: 0.0040 - val_mse: 0.0040
+Epoch 12/500
+523/523 - 8s - loss: 0.0034 - mse: 0.0034 - val_loss: 0.0041 - val_mse: 0.0041
+Epoch 13/500
+523/523 - 8s - loss: 0.0034 - mse: 0.0034 - val_loss: 0.0039 - val_mse: 0.0039
+Epoch 14/500
+523/523 - 8s - loss: 0.0034 - mse: 0.0034 - val_loss: 0.0041 - val_mse: 0.0041
+Epoch 15/500
+523/523 - 8s - loss: 0.0034 - mse: 0.0034 - val_loss: 0.0039 - val_mse: 0.0039
+Epoch 16/500
+523/523 - 8s - loss: 0.0034 - mse: 0.0034 - val_loss: 0.0041 - val_mse: 0.0041
+Epoch 17/500
+523/523 - 8s - loss: 0.0034 - mse: 0.0034 - val_loss: 0.0039 - val_mse: 0.0039
+Epoch 18/500
+523/523 - 8s - loss: 0.0033 - mse: 0.0033 - val_loss: 0.0040 - val_mse: 0.0040

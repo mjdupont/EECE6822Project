@@ -1,0 +1,9 @@
+Model:	Sterling Virginia_GHI_Harmonics_Weather
+num_features:	15
+features:	['ghi', 'cos1doy', 'sin1doy', 'cos2doy', 'sin2doy', 'cos4doy', 'sin4doy', 'cos1hod', 'sin1hod', 'cos2hod', 'sin2hod', 'cos4hod', 'sin4hod', 'dhi', 'dni']
+hours_history:	24
+num_neurons:	24
+num_epochs:	10
+num_layers:	2
+
+Persistence Accuracy: 153.40868464738878, 	 Model Accuracy: 114.68262132605635
