@@ -50,4 +50,46 @@ if (Sys.getenv("RSTUDIO") == "1")
 
 df <- read_csv("best_results.csv")
 
-output_df <- best_performance[-c(1, 2, 5)]
+output_df <- df[-c(1, 2, 5)]
+output_df <- output_df %>% mutate(Station=replace(Station, Station=='Natural Energy Laboratory of Hawaii Authority', 'NEL Hawaii'))
+
+output_df <- output_df %>% rename(Persistence_Perf = Persistence_Performance) %>% rename(Model_Perf = Model_Performance)
+
+output_df_type1 <- output_df[output_df$Station %in% c('Titusville FL',
+                                                       'NEL Hawaii',
+                                                       'Millbrook NY'),]
+tab_df(
+  output_df_type1,
+  title="Appendix A. Model Performance Results - Non-Irradiance Only Predictors"
+)
+
+output_df_type2 <- output_df[output_df$Station %in% c('Table Mountain Boulder CO',
+                                                      'Goodwin Creek MS',
+                                                      'Bondville IL'
+                                                      ),]
+tab_df(
+  output_df_type2,
+  title="Appendix B. Model Performance Results - Non-Irradiance+Irradiance Predictors"
+)
+
+output_df_type3 <- output_df[output_df$Station %in% c('Sterling Virginia',
+                                                      'Seattle Washington',
+                                                      'Salt Lake City Utah', 
+                                                      'Hanford California'
+),]
+tab_df(
+  output_df_type3,
+  title="Appendix C. Model Performance Results - Irradiance Only Predictors"
+)
+
+
+tab_df(
+  output_df,
+  title="Table 2. Model Performance Results"
+)
+
+df_melted <- read_csv("results_melted.csv")
+tab_df(
+  df_melted,
+  title="Table 2. Model Performance Results"
+)
