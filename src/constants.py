@@ -33,18 +33,18 @@ def seasonal_harmonics(datetime:pd.Timestamp):
   hourofday = datetime.hour
   results = \
     dict( \
-      cos1doy = np.cos(np.pi * 1 * dayofyear / 365),
-      sin1doy = np.sin(np.pi * 2 * dayofyear / 365),
-      cos2doy = np.cos(np.pi * 2 * dayofyear / 365),
-      sin2doy = np.sin(np.pi * 2 * dayofyear / 365),
-      cos4doy = np.cos(np.pi * 4 * dayofyear / 365),
-      sin4doy = np.sin(np.pi * 4 * dayofyear / 365),
-      cos1hod = np.cos(np.pi * 1 * hourofday /  24),
-      sin1hod = np.sin(np.pi * 1 * hourofday /  24),
-      cos2hod = np.cos(np.pi * 2 * hourofday /  24),
-      sin2hod = np.sin(np.pi * 2 * hourofday /  24),
-      cos4hod = np.cos(np.pi * 4 * hourofday /  24),
-      sin4hod = np.sin(np.pi * 4 * hourofday /  24),
+      cos1doy = np.cos(2 * np.pi * 1 * dayofyear / 365),
+      sin1doy = np.sin(2 * np.pi * 1 * dayofyear / 365),
+      cos2doy = np.cos(2 * np.pi * 2 * dayofyear / 365),
+      sin2doy = np.sin(2 * np.pi * 2 * dayofyear / 365),
+      cos4doy = np.cos(2 * np.pi * 4 * dayofyear / 365),
+      sin4doy = np.sin(2 * np.pi * 4 * dayofyear / 365),
+      cos1hod = np.cos(2 * np.pi * 1 * hourofday /  24),
+      sin1hod = np.sin(2 * np.pi * 1 * hourofday /  24),
+      cos2hod = np.cos(2 * np.pi * 2 * hourofday /  24),
+      sin2hod = np.sin(2 * np.pi * 2 * hourofday /  24),
+      cos4hod = np.cos(2 * np.pi * 4 * hourofday /  24),
+      sin4hod = np.sin(2 * np.pi * 4 * hourofday /  24),
       )
   return results
 

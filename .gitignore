@@ -1,2 +1,3 @@
 data_src/*
 src/__pycache__/*
+.RHistory

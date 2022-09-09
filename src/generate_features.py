@@ -42,7 +42,7 @@ def generate_historical_features(df:pd.DataFrame, hours_ahead:int, hours_history
   ## Defragment DataFrame
   return new_df.copy()
 
-def generate_harmonic_features(df:pd.DataFrame):
+def generate_harmonic_features(df:pd.DataFrame) -> pd.DataFrame:
   new_df = df.__deepcopy__()
   seasonal_features = new_df['timestamp'].apply(lambda x : seasonal_harmonics(x))
   new_features = dict()

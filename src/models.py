@@ -172,6 +172,48 @@ def build_and_train_model_validation_early_stop(train_features, train_targets, n
   )
   
   callbacks=[tf.keras.callbacks.EarlyStopping(patience=patience)]
+  print(train_targets)
   history = model.fit(x = train_features, y = train_targets, validation_split=.33, epochs=num_epochs, verbose=verbose, callbacks=callbacks)
 
   return model, history
+
+
+
+def build_and_train_model_validation_early_stop_single_horizons(train_features, train_targets, num_layers, num_neurons, num_epochs, num_features, verbose, patience, num_horizons):
+  
+  def build_and_train_single_horizon(horizon):
+     # Explanation of LSTM model: https://stackoverflow.com/questions/50488427/what-is-the-architecture-behind-the-keras-lstm-cell
+    def lstm_layers(layer, len):
+      if len == 1:
+        return tf.keras.layers.LSTM(num_neurons, 
+        input_shape=(HOURS_HX, num_features)
+        )
+      elif layer == 1:
+        return tf.keras.layers.LSTM(num_neurons, return_sequences=True, 
+        input_shape=(HOURS_HX, num_features)
+        )
+      elif layer == len:
+        return tf.keras.layers.LSTM(num_neurons)
+      else :
+        return tf.keras.layers.LSTM(num_neurons, return_sequences=True)
+
+    model_layers = [lstm_layers(layer+1, num_layers) for layer in range(num_layers)] + [ tf.keras.layers.Dense(1, activation='relu') ]
+
+    model = tf.keras.Sequential(model_layers)
+
+    model.compile(
+      loss='mse',
+      optimizer='adam',
+      metrics=['mse']
+    )
+    
+    callbacks=[tf.keras.callbacks.EarlyStopping(patience=patience)]
+    
+    # Assume train_targets is vector of length 24
+    horizon_targets = train_targets[:,horizon].reshape(-1,1)
+    history = model.fit(x = train_features, y = horizon_targets, validation_split=.33, epochs=num_epochs, verbose=verbose, callbacks=callbacks)
+    return model, history
+
+  return [ build_and_train_single_horizon(horizon) for horizon in range(num_horizons) ]
+  
+  

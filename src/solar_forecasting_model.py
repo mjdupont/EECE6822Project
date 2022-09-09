@@ -16,7 +16,7 @@ from sklearn.metrics import mean_squared_error
 from src.constants import HARMONIC_FEATURES, HOURS_AHEAD, HOURS_FORECASTED, HOURS_HX, NUM_EPOCHS, NUM_LAYERS, STATIONS
 from src.generate_features import generate_harmonic_historical_features, generate_historical_features, generate_persistence_fcst, historical_feature
 
-from src.models import build_and_train_model_validation_early_stop
+from src.models import build_and_train_model_validation_early_stop, build_and_train_model_validation_early_stop_single_horizons
 
 #### Main Testing Loop
 if __name__ == '__main__':
@@ -109,7 +109,7 @@ if __name__ == '__main__':
         sys.stdout.flush()
         sys.stdout=summary_file
         progress_file.close()
-        
+
         ## Evaluate Performance on Test Set
         test_features = np.array(test_set.loc[:,selected_features].values)
         scaled_test_features = feature_scaler.transform(test_features)
